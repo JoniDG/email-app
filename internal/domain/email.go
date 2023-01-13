@@ -1,9 +1,18 @@
 package domain
 
-import "time"
+type BodyTemplateData struct {
+	Company string
+	Link    string
+}
 
-type Body struct {
-	Name        string
-	TimeStamp   time.Time
-	Temperature int8
+type Email struct {
+	To      []string
+	Subject string
+	Body    string
+}
+
+type Payload struct {
+	To           []string
+	NameTemplate string
+	Data         BodyTemplateData
 }
