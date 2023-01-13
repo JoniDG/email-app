@@ -42,7 +42,9 @@ func email() {
 		fmt.Println(err)
 		return
 	}
-	body := buf.String()
+	body := defines.TitleEmail + "\n"
+	body += "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";" + "\r\n"
+	body += buf.String()
 	err = smtp.SendMail(address, auth, from, to, []byte(body))
 	if err != nil {
 		fmt.Println(err)
