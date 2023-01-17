@@ -28,7 +28,7 @@ func NewEmailRepository(auth smtp.Auth) EmailRepository {
 
 func (r *emailRepository) SendMail(email domain.Email) error {
 	addr := os.Getenv(defines.EnvEmailHost) + ":" + os.Getenv(defines.EnvEmailPort)
-	body := []byte(email.Body)
+	body := []byte(email.Body.Headers + email.Body.Message)
 	log.Printf("Body length %d bytes\n", len(body))
 	err := smtp.SendMail(addr, r.auth, os.Getenv("EMAIL_SENDER_USER"), email.To, body)
 	if err != nil {

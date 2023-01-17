@@ -24,7 +24,7 @@ func NewEmailService(emailRepo repository.EmailRepository) EmailService {
 }
 
 func (s *emailService) ParseTemplate(payload domain.Payload) error {
-	fp := filepath.Join("../templates", payload.TemplateName+".html")
+	fp := filepath.Join("./templates", payload.TemplateName+".html")
 	t, err := template.ParseFiles(fp)
 	if err != nil {
 		return err
@@ -36,10 +36,13 @@ func (s *emailService) ParseTemplate(payload domain.Payload) error {
 	}
 	email := domain.Email{
 		To: []string{payload.To},
-		Body: defines.SubjectEmail + "\n" +
-			defines.EnvSenderUser + "\n" +
-			"To: " + payload.To + "\n" +
-			defines.Mime + buf.String(),
+		Body: domain.BodyMail{
+			Headers: "From: " + payload.Data.CompanyName + "\n" +
+				"To: " + payload.To + "\n" +
+				defines.SubjectEmail + "\n" +
+				defines.Mime + "\r\n",
+			Message: buf.String(),
+		},
 	}
 	err = s.emailRepo.SendMail(email)
 	if err != nil {

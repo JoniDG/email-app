@@ -10,9 +10,14 @@ type BodyTemplateData struct {
 	Link        string `json:"link"`
 }
 
+type BodyMail struct {
+	Headers string
+	Message string
+}
+
 type Email struct {
 	To   []string
-	Body string
+	Body BodyMail
 }
 
 type Payload struct {
