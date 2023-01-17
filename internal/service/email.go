@@ -6,6 +6,7 @@ import (
 	"email-app/internal/domain"
 	"email-app/internal/repository"
 	"html/template"
+	"path/filepath"
 )
 
 type EmailService interface {
@@ -23,7 +24,8 @@ func NewEmailService(emailRepo repository.EmailRepository) EmailService {
 }
 
 func (s *emailService) ParseTemplate(payload domain.Payload) error {
-	t, err := template.ParseFiles(payload.NameTemplate)
+	fp := filepath.Join("../templates", payload.TemplateName+".html")
+	t, err := template.ParseFiles(fp)
 	if err != nil {
 		return err
 	}
@@ -33,9 +35,11 @@ func (s *emailService) ParseTemplate(payload domain.Payload) error {
 		return err
 	}
 	email := domain.Email{
-		To:      payload.To,
-		Subject: defines.SubjectEmail,
-		Body:    defines.SubjectEmail + "\n" + defines.Mime + buf.String(),
+		To: []string{payload.To},
+		Body: defines.SubjectEmail + "\n" +
+			defines.EnvSenderUser + "\n" +
+			"To: " + payload.To + "\n" +
+			defines.Mime + buf.String(),
 	}
 	err = s.emailRepo.SendMail(email)
 	if err != nil {

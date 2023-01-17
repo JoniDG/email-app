@@ -7,7 +7,7 @@ import (
 )
 
 type EmailController interface {
-	Handle(payload domain.Payload)
+	Handle(payload *string)
 }
 
 type emailController struct {
@@ -20,8 +20,9 @@ func NewEmailController(svc service.EmailService) EmailController {
 	}
 }
 
-func (e *emailController) Handle(payload domain.Payload) {
-	err := e.svc.ParseTemplate(payload)
+func (e *emailController) Handle(payload *string) {
+	pDTO := domain.PayloadRedisToDTO(*payload)
+	err := e.svc.ParseTemplate(*pDTO)
 	if err != nil {
 		log.Printf("Error Parsing Template/Data")
 	}

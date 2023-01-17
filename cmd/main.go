@@ -1,18 +1,31 @@
 package main
 
 import (
+	"context"
 	"email-app/internal/controller"
 	"email-app/internal/defines"
-	"email-app/internal/domain"
 	"email-app/internal/repository"
 	"email-app/internal/service"
 	"fmt"
-	_ "github.com/joho/godotenv/autoload"
+	"log"
 	"net/smtp"
 	"os"
+
+	"github.com/go-redis/redis/v9"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
+	ctx := context.Background()
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: os.Getenv(defines.EnvRedisHost),
+	})
+	err := redisClient.Ping(ctx).Err()
+	if err != nil {
+		log.Fatalf("Error Ping Redis: %+v\n", err)
+	}
+
 	from := os.Getenv("EMAIL_SENDER_USER")
 	password := os.Getenv("EMAIL_SENDER_PASSWORD")
 	host := os.Getenv("EMAIL_HOST")
@@ -21,16 +34,17 @@ func main() {
 	svc := service.NewEmailService(emailRepo)
 	ctrl := controller.NewEmailController(svc)
 
-	msg := domain.BodyTemplateData{
-		Company: "Example Company",
-		Link:    "http://example.com",
+	queue := defines.QueueEmail
+	fmt.Printf("Email running, reading from %s\n", queue)
+	for {
+		payload, err := redisClient.LPop(ctx, queue).Result()
+		if err != nil {
+			if err.Error() == "redis: nil" {
+				continue
+			}
+			log.Printf("Error receiving payload: %+v\n", err)
+		}
+		log.Printf("Processing: %+v\n", payload)
+		ctrl.Handle(&payload)
 	}
-
-	payload := domain.Payload{
-		To:           []string{defines.To},
-		NameTemplate: defines.NameTemplate,
-		Data:         msg,
-	}
-	fmt.Println("Email running")
-	ctrl.Handle(payload)
 }
