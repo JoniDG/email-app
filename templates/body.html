@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-    <body>
+<html>
+    <head>
         <meta name="viewport" content="width=device-width"/>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <p>Hola {{.Name}}, hoy es {{.TimeStamp}} y la temperatura es de {{.Temperature}}°</p>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    </head>
+    <body>
+        <div style="margin: 0 auto; text-align: center;background-color: lime;">
+            <p>Compañia: {{.CompanyName}}</p>
+            <p>{{.Link}}</p>
+        </div>
     </body>
 </html>

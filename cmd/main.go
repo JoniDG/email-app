@@ -1,54 +1,50 @@
 package main
 
 import (
-	"bytes"
+	"context"
+	"email-app/internal/controller"
 	"email-app/internal/defines"
-	"email-app/internal/domain"
+	"email-app/internal/repository"
+	"email-app/internal/service"
 	"fmt"
-	_ "github.com/joho/godotenv/autoload"
-	"html/template"
+	"log"
 	"net/smtp"
 	"os"
-	"time"
+
+	"github.com/go-redis/redis/v9"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
-	fmt.Println("Email running")
-	email()
-}
+	ctx := context.Background()
 
-func email() {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: os.Getenv(defines.EnvRedisHost),
+	})
+	err := redisClient.Ping(ctx).Err()
+	if err != nil {
+		log.Fatalf("Error Ping Redis: %+v\n", err)
+	}
+
 	from := os.Getenv("EMAIL_SENDER_USER")
 	password := os.Getenv("EMAIL_SENDER_PASSWORD")
 	host := os.Getenv("EMAIL_HOST")
-	port := os.Getenv("EMAIL_PORT")
 	auth := smtp.PlainAuth("", from, password, host)
-	address := host + ":" + port
-	toEmail := defines.To
-	to := []string{toEmail}
-	t, err := template.ParseFiles("./templates/body.html")
-	if err != nil {
-		fmt.Println(err)
-		return
+	emailRepo := repository.NewEmailRepository(auth)
+	svc := service.NewEmailService(emailRepo)
+	ctrl := controller.NewEmailController(svc)
+
+	queue := defines.QueueEmail
+	fmt.Printf("Email running, reading from %s\n", queue)
+	for {
+		payload, err := redisClient.LPop(ctx, queue).Result()
+		if err != nil {
+			if err.Error() == "redis: nil" {
+				continue
+			}
+			log.Printf("Error receiving payload: %+v\n", err)
+		}
+		log.Printf("Processing: %+v\n", payload)
+		ctrl.Handle(&payload)
 	}
-	buf := new(bytes.Buffer)
-	msg := domain.Body{
-		Name:        "Jonathan",
-		TimeStamp:   time.Now(),
-		Temperature: 30,
-	}
-	err = t.Execute(buf, msg)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	body := defines.TitleEmail + "\n"
-	body += "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";" + "\r\n"
-	body += buf.String()
-	err = smtp.SendMail(address, auth, from, to, []byte(body))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("Email Enviado")
 }
